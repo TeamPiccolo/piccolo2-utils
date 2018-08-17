@@ -1,2 +1,5 @@
 2018-08-17 Magnus Hagdorn
+ * piccolo2/pcalibrate.py: add option to apply a Gaussian weight
+
+2018-08-17 Magnus Hagdorn
  * add script to do wavelength calibration

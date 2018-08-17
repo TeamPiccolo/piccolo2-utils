@@ -5,6 +5,9 @@ import sys, os.path
 from matplotlib import pyplot
 import numpy
 
+def gaussian(a,b,c,x):
+    return a*numpy.exp(-(x-b)**2/(2*c**2))
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('spectra',nargs='+',help='the spectra files to load')
@@ -13,6 +16,8 @@ def main():
     parser.add_argument('-s','--saturation-percentage',type=float,default=90.,help='percentage of saturation level above which peaks are ignored')
     parser.add_argument('-c','--direction',nargs='*',help="select the direction to process, default: process all directions")
     parser.add_argument('-n','--serial-number',nargs='*',help="select the spectrometer to process, default: process all spectrometers")
+    parser.add_argument('-w','--wavelength',type=float,help="optimise for wavelength by applying a Gaussian weight centred at wavelength")
+    parser.add_argument('-g','--gaussian-width',type=float,default=100.,help='width of gaussian in nm, default=100.')
     parser.add_argument('-v','--version',action='store_true',default=False,help="print version and exit")
     
     args = parser.parse_args()
@@ -89,14 +94,18 @@ def main():
                                                   maxval=calibration[sn]['SaturationLevel']*args.saturation_percentage/100.)
                     matched += m
                 matched = numpy.array(matched)
-                coeff = numpy.polyfit(matched[:,0],matched[:,1],3)
+                if args.wavelength is not None:
+                    weights = 0.5+gaussian(0.5,args.wavelength,args.gaussian_width,matched[:,0])
+                else:
+                    weights = None
+                coeff = numpy.polyfit(matched[:,0],matched[:,1],3,w=weights)
 
                 if nPeaks == len(matched):
                     break
                 nPeaks = len(matched)
             calibration[sn][dr]['matched'] = matched
             calibration[sn][dr]['new_wcoeff'] = coeff
-
+            pyplot.show()
 
 
     for sn in calibration:
