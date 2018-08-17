@@ -18,6 +18,7 @@ def main():
     parser.add_argument('-n','--serial-number',nargs='*',help="select the spectrometer to process, default: process all spectrometers")
     parser.add_argument('-w','--wavelength',type=float,help="optimise for wavelength by applying a Gaussian weight centred at wavelength")
     parser.add_argument('-g','--gaussian-width',type=float,default=100.,help='width of gaussian in nm, default=100.')
+    parser.add_argument('--shift',action='store_true',default=False,help='shift wavelengths to match center wavelength used for Gaussian weight')
     parser.add_argument('-v','--version',action='store_true',default=False,help="print version and exit")
     
     args = parser.parse_args()
@@ -103,6 +104,11 @@ def main():
                 if nPeaks == len(matched):
                     break
                 nPeaks = len(matched)
+
+            if args.wavelength is not None and args.shift:
+                for i in range(matched.shape[0]):
+                    print i
+                
             calibration[sn][dr]['matched'] = matched
             calibration[sn][dr]['new_wcoeff'] = coeff
             pyplot.show()
@@ -137,7 +143,14 @@ def main():
                 s1 = poly(len(p))
                 for i in range(2):
                     ax[i,j].set_xlim([s0,s1])
-                
+
+            pyplot.suptitle('%s %s'%(sn,dr),fontsize=16)
+            ax[0,0].set_title('original')
+            ax[0,1].set_title('new')
+            ax[1,0].set_ylabel('mismatch at peaks')
+            ax[0,0].set_ylabel('counts')
+            ax[1,0].set_xlabel('wavelength')
+            ax[1,1].set_xlabel('wavelength')
             pyplot.show()
 
 
