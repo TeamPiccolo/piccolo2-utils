@@ -106,8 +106,14 @@ def main():
                 nPeaks = len(matched)
 
             if args.wavelength is not None and args.shift:
+                idx = None
                 for i in range(matched.shape[0]):
-                    print i
+                    if  abs(matched[i,1]-args.wavelength) < 0.5:
+                        idx = int(matched[i,0])
+                if idx is not None:
+                    offset = args.wavelength-numpy.poly1d(coeff)(idx)
+                    print 'shifting wavelenghts by %f to match spectral line at %f'%(offset,args.wavelength)
+                    coeff[-1] += offset
                 
             calibration[sn][dr]['matched'] = matched
             calibration[sn][dr]['new_wcoeff'] = coeff
