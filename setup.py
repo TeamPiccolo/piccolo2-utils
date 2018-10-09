@@ -26,7 +26,8 @@ setup(
     include_package_data = True,
     install_requires = [
         "piccolo2-common",
-        "matplotlib"
+        "matplotlib",
+        "configobj",
     ],
     data_files=[
         ('share/piccolo2-util',["data/HgArLines.csv",]),

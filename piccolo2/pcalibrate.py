@@ -1,4 +1,4 @@
-from piccolo2.utils import PiccoloSpectralLines
+from piccolo2.utils import PiccoloSpectralLines, CalibrateConfig
 from piccolo2.common import PiccoloSpectraList
 import argparse
 import sys, os.path
@@ -10,11 +10,12 @@ def gaussian(a,b,c,x):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('spectra',nargs='+',help='the spectra files to load')
+    parser.add_argument('spectra',nargs='*',help='the spectra files to load')
+    parser.add_argument('-c','--config',help="read config file")
     parser.add_argument('-l','--spectral-lines',help="csv file containing spectral lines")
-    parser.add_argument('-d','--delta',type=float,default=1000.,help='minimum delta for peak, default 5000.')
+    parser.add_argument('--delta',type=float,default=1000.,help='minimum delta for peak, default 5000.')
     parser.add_argument('-s','--saturation-percentage',type=float,default=90.,help='percentage of saturation level above which peaks are ignored')
-    parser.add_argument('-c','--direction',nargs='*',help="select the direction to process, default: process all directions")
+    parser.add_argument('-d','--direction',nargs='*',help="select the direction to process, default: process all directions")
     parser.add_argument('-n','--serial-number',nargs='*',help="select the spectrometer to process, default: process all spectrometers")
     parser.add_argument('-w','--wavelength',type=float,help="optimise for wavelength by applying a Gaussian weight centred at wavelength")
     parser.add_argument('-g','--gaussian-width',type=float,default=100.,help='width of gaussian in nm, default=100.')
@@ -27,41 +28,59 @@ def main():
         from utils import __version__
         print __version__
         sys.exit(0)
-    if args.spectral_lines is not None:
-        spectralLinesName = args.spectral_lines
+
+    if args.config is not None:
+        cfg = CalibrateConfig()
+        cfg.readCfg(args.config)
+        calibrate = cfg.cfg['calibrate']
     else:
-        spectralLinesName=os.path.join(os.path.dirname(sys.argv[0]),'..','share','piccolo2-util','HgArLines.csv')
+        if args.spectral_lines is not None:
+            spectralLinesName = args.spectral_lines
+        else:
+            spectralLinesName=os.path.join(os.path.dirname(sys.argv[0]),'..','share','piccolo2-util','HgArLines.csv')
         if not os.path.isfile(spectralLinesName):
             parser.error('could not find file containing spectra lines')
-            sys.exit(1)
-    spectral_lines_HgAr = PiccoloSpectralLines(spectralLinesName)
+            sys.exit(1)       
+            
+        calibrate = {}
+        c = os.path.basename(spectralLinesName)
+        calibrate[c] = {}
+        calibrate[c]['spectral_lines'] = spectralLinesName
+        calibrate[c]['spectra'] = args.spectra
+        
 
+    spectralLines = {}
+    # loop over all spectral_lines
+    for c in calibrate:
+        spectralLines[c] = PiccoloSpectralLines(calibrate[c]['spectral_lines'])
 
     calibration ={}
 
     # load data and match spectral lines
-    for sf in args.spectra:
-        indata = open(sf,'r').read()
-        spectra = PiccoloSpectraList(data=indata)
+    for c in calibrate:
+        for sf in calibrate[c]['spectra']:
+            indata = open(sf,'r').read()
+            spectra = PiccoloSpectraList(data=indata)
 
-        for s in spectra:
-            sn = s['SerialNumber']
-            dr = s['Direction']
-            if args.serial_number is not None and sn not in args.serial_number:
-                continue
-            if sn not in calibration:
-                calibration[sn] = {}
-                calibration[sn]['SaturationLevel']=s['SaturationLevel']
-            if args.direction is not None and dr not in args.direction:
-                continue                
-            if dr not in calibration[sn]:
-                calibration[sn][dr] = {}
-                calibration[sn][dr]['orig_wcoeff'] = s['WavelengthCalibrationCoefficients'][::-1]
-                calibration[sn][dr]['pixels'] = []
+            for s in spectra:
+                sn = s['SerialNumber']
+                dr = s['Direction']
+                if args.serial_number is not None and sn not in args.serial_number:
+                    continue
+                if sn not in calibration:
+                    calibration[sn] = {}
+                    calibration[sn]['SaturationLevel']=s['SaturationLevel']
+                if args.direction is not None and dr not in args.direction:
+                    continue                
+                if dr not in calibration[sn]:
+                    calibration[sn][dr] = {}
+                    calibration[sn][dr]['orig_wcoeff'] = s['WavelengthCalibrationCoefficients'][::-1]
+                    calibration[sn][dr]['pixels'] = []
+                    calibration[sn][dr]['spectralLines'] = []
 
-            calibration[sn][dr]['pixels'].append(s.pixels)
+                calibration[sn][dr]['pixels'].append(s.pixels)
+                calibration[sn][dr]['spectralLines'].append(c)
 
-                
 
     ok = True
     if args.serial_number is not None:
@@ -90,9 +109,12 @@ def main():
                 matched = []
                 # find peaks
                 wavelengths = numpy.poly1d(coeff)(numpy.arange(len(calibration[sn][dr]['pixels'][0])))
-                for pixels in calibration[sn][dr]['pixels']:
-                    m = spectral_lines_HgAr.match(wavelengths,pixels,delta=args.delta,
-                                                  maxval=calibration[sn]['SaturationLevel']*args.saturation_percentage/100.)
+                for i in range(len(calibration[sn][dr]['pixels'])):
+                    pixels = calibration[sn][dr]['pixels'][i]
+                    spectral_lines = spectralLines[calibration[sn][dr]['spectralLines'][i]]
+
+                    m = spectral_lines.match(wavelengths,pixels,delta=args.delta,
+                                             maxval=calibration[sn]['SaturationLevel']*args.saturation_percentage/100.)
                     matched += m
                 matched = numpy.array(matched)
                 if args.wavelength is not None:
@@ -131,9 +153,10 @@ def main():
             f,ax = pyplot.subplots(2,2)
 
 
-            for l in spectral_lines_HgAr.lines:
-                ax[0,0].axvline(l,color='k')
-                ax[0,1].axvline(l,color='k')
+            for c in spectralLines:
+                for l in spectralLines[c].lines:
+                    ax[0,0].axvline(l,color='k')
+                    ax[0,1].axvline(l,color='k')
 
             polys = [numpy.poly1d(calibration[sn][dr]['orig_wcoeff']),
                      numpy.poly1d(calibration[sn][dr]['new_wcoeff'])]

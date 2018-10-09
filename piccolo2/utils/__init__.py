@@ -24,3 +24,4 @@ except DistributionNotFound:
 
 
 from matchSpectralLines import *
+from calibrateConfig import *

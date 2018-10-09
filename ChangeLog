@@ -1,3 +1,11 @@
+2018-10-09 Magnus Hagdorn
+ * piccolo2/utils/calibrateConfig.py: add config file parser
+ * piccolo2/utils/__init__.py: import config file parser
+ * setup.py: new dependency
+ * piccolo2/pcalibrate.py: add option to read config file; handle multiple
+   sets of spectral lines
+ * README.md: updated
+
 2018-08-17 Magnus Hagdorn
  * piccolo2/pcalibrate.py: add option to shift spectrum
 
