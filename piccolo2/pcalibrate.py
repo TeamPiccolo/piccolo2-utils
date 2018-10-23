@@ -9,6 +9,8 @@ import pandas
 def gaussian(a,b,c,x):
     return a*numpy.exp(-(x-b)**2/(2*c**2))
 
+markers = "ov^<>spP*Dd"
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('spectra',nargs='*',help='the spectra files to load')
@@ -51,9 +53,15 @@ def main():
         
 
     spectralLines = {}
+    spectralLinesColour = {}
+    spectralLinesMarker = {}
     # loop over all spectral_lines
+    i = 0
     for c in calibrate:
         spectralLines[c] = PiccoloSpectralLines(calibrate[c]['spectral_lines'])
+        spectralLinesColour[c] = 'C%d'%(i%10)
+        spectralLinesMarker[c] = markers[i%len(markers)]
+        i = i+1
 
     calibration ={}
 
@@ -156,11 +164,10 @@ def main():
 
             f,ax = pyplot.subplots(2,2)
 
-
-            for c in spectralLines:
-                for l in spectralLines[c].lines:
-                    ax[0,0].axvline(l,color='k')
-                    ax[0,1].axvline(l,color='k')
+            for s in spectralLines:
+                for l in spectralLines[s].lines:
+                    for j in range(2):
+                        ax[0,j].axvline(l,color=spectralLinesColour[s])
 
             polys = [numpy.poly1d(calibration[sn][dr]['orig_wcoeff']),
                      numpy.poly1d(calibration[sn][dr]['new_wcoeff'])]
@@ -173,8 +180,8 @@ def main():
                     ax[0,j].plot(poly(numpy.arange(len(p))),p,color=c)
                     matched = calibration[sn][dr]['matched']
                     m = matched[matched.file==sf]
-                    ax[0,j].plot(poly(m.pixel.values),m.intensity.values,'o',color=c)
-                    ax[1,j].plot(m.line.values,poly(m.pixel.values)-m.line.values,'o',color=c)
+                    ax[0,j].plot(poly(m.pixel.values),m.intensity.values,spectralLinesMarker[calibration[sn][dr]['spectralLines'][i]],color=c)
+                    ax[1,j].plot(m.line.values,poly(m.pixel.values)-m.line.values,spectralLinesMarker[calibration[sn][dr]['spectralLines'][i]],color=c)
 
                 
                 s0 = poly(0)

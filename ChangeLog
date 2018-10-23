@@ -1,4 +1,7 @@
 2018-10-23 Magnus Hagdorn
+ * piccolo2/pcalibrate.py: distinguish various spectral lines
+
+2018-10-23 Magnus Hagdorn
  * setup.py: require pandas and scipy
  * piccolo2/pcalibrate.py: use pandas to handle data
  * piccolo2/utils/FindPeaks.py: add scipy.signal to detect peaks
