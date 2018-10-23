@@ -1,3 +1,9 @@
+2018-10-23 Magnus Hagdorn
+ * setup.py: require pandas and scipy
+ * piccolo2/pcalibrate.py: use pandas to handle data
+ * piccolo2/utils/FindPeaks.py: add scipy.signal to detect peaks
+ * piccolo2/utils/matchSpectralLines.py: use scipy peak detection
+
 2018-10-09 Magnus Hagdorn
  * piccolo2/utils/calibrateConfig.py: add config file parser
  * piccolo2/utils/__init__.py: import config file parser

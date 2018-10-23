@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with piccolo2-utils.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__  = ['peakdet']
+__all__  = ['peakdet','peakdet2']
 
 import numpy
+from scipy.signal import find_peaks
 
 def peakdet(v, delta, maxval=None, x = None):
     """
@@ -94,3 +95,12 @@ def peakdet(v, delta, maxval=None, x = None):
                 lookformax = True
 
     return numpy.array(maxtab), numpy.array(mintab)
+
+def peakdet2(v, delta, maxval=None, x = None):
+
+    if maxval is not None:
+        h = [delta,maxval]
+    else:
+        h = delta
+    peaks, _ = find_peaks(v,height=h)
+    return peaks

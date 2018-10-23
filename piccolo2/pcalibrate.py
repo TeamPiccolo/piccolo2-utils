@@ -4,6 +4,7 @@ import argparse
 import sys, os.path
 from matplotlib import pyplot
 import numpy
+import pandas
 
 def gaussian(a,b,c,x):
     return a*numpy.exp(-(x-b)**2/(2*c**2))
@@ -77,9 +78,11 @@ def main():
                     calibration[sn][dr]['orig_wcoeff'] = s['WavelengthCalibrationCoefficients'][::-1]
                     calibration[sn][dr]['pixels'] = []
                     calibration[sn][dr]['spectralLines'] = []
+                    calibration[sn][dr]['spectraFile'] = []
 
                 calibration[sn][dr]['pixels'].append(s.pixels)
                 calibration[sn][dr]['spectralLines'].append(c)
+                calibration[sn][dr]['spectraFile'].append(sf)
 
 
     ok = True
@@ -106,22 +109,23 @@ def main():
             # start with original wavelengths coefficients
             coeff = calibration[sn][dr]['orig_wcoeff']
             while True:
-                matched = []
+                matched = pandas.DataFrame(columns = ['pixel','intensity','line','file'])
                 # find peaks
                 wavelengths = numpy.poly1d(coeff)(numpy.arange(len(calibration[sn][dr]['pixels'][0])))
-                for i in range(len(calibration[sn][dr]['pixels'])):
+                for i in range(len(calibration[sn][dr]['pixels'])):                    
                     pixels = calibration[sn][dr]['pixels'][i]
                     spectral_lines = spectralLines[calibration[sn][dr]['spectralLines'][i]]
 
                     m = spectral_lines.match(wavelengths,pixels,delta=args.delta,
                                              maxval=calibration[sn]['SaturationLevel']*args.saturation_percentage/100.)
-                    matched += m
-                matched = numpy.array(matched)
+                    pd_m = pandas.DataFrame(columns = ['pixel','intensity','line'], data=m)
+                    pd_m['file'] = [calibration[sn][dr]['spectraFile'][i]]*len(m)
+                    matched = matched.append(pd_m, ignore_index=True)
                 if args.wavelength is not None:
-                    weights = 0.5+gaussian(0.5,args.wavelength,args.gaussian_width,matched[:,0])
+                    weights = 0.5+gaussian(0.5,args.wavelength,args.gaussian_width,mathed.pixel)
                 else:
                     weights = None
-                coeff = numpy.polyfit(matched[:,0],matched[:,1],3,w=weights)
+                coeff = numpy.polyfit(matched.pixel.values.astype(float),matched.line.values,3,w=weights)
 
                 if nPeaks == len(matched):
                     break
@@ -162,10 +166,15 @@ def main():
                      numpy.poly1d(calibration[sn][dr]['new_wcoeff'])]
             for j in range(len(polys)):
                 poly = polys[j]
-                for p in calibration[sn][dr]['pixels']:
-                    ax[0,j].plot(poly(numpy.arange(len(p))),p)
+                for i in range(len(calibration[sn][dr]['pixels'])):
+                    c = 'C%d'%(i%10)
+                    p = calibration[sn][dr]['pixels'][i]
+                    sf = calibration[sn][dr]['spectraFile'][i]
+                    ax[0,j].plot(poly(numpy.arange(len(p))),p,color=c)
                     matched = calibration[sn][dr]['matched']
-                    ax[1,j].plot(matched[:,1],poly(matched[:,0])-matched[:,1],'o')
+                    m = matched[matched.file==sf]
+                    ax[0,j].plot(poly(m.pixel.values),m.intensity.values,'o',color=c)
+                    ax[1,j].plot(m.line.values,poly(m.pixel.values)-m.line.values,'o',color=c)
 
                 
                 s0 = poly(0)

@@ -35,10 +35,15 @@ class PiccoloSpectralLines(object):
             yield l
         
     def match(self,wavelengths,pixels,maxDist=2.,delta=5000,maxval=None):
-        maxpeaks,minpeaks =  peakdet(pixels,delta,maxval=maxval)
-        peak_pixels = maxpeaks[:,0]
-        peak_intensities = maxpeaks[:,1]
-        peak_wavelengths = wavelengths[peak_pixels]
+        if False:
+            maxpeaks,minpeaks =  peakdet(pixels,delta,maxval=maxval)
+            peak_pixels = maxpeaks[:,0]
+            peak_intensities = maxpeaks[:,1]
+            peak_wavelengths = wavelengths[peak_pixels]
+        else:
+            peak_pixels = peakdet2(pixels,delta,maxval=maxval)
+            peak_intensities = pixels[peak_pixels]
+            peak_wavelengths = wavelengths[peak_pixels]
 
         # match peaks
         matched = []
@@ -47,7 +52,7 @@ class PiccoloSpectralLines(object):
         for i in range(len(peak_pixels)):
             for j in range(len(lines)):
                 if abs(peak_wavelengths[i]-lines[j]) < maxDist:
-                    matched.append((peak_pixels[i],lines[j]))
+                    matched.append((peak_pixels[i],peak_intensities[i],lines[j]))
                     del lines[j]
                     break
         return matched
