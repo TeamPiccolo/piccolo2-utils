@@ -48,9 +48,13 @@ setup(
         ('share/piccolo2-util',["data/HgArLines.csv",]),
         ],
     entry_points={
-        'console_scripts': [
-            'piccolo2-wavelengthCalibration = piccolo2.pcalibrate:main',
-        ],
+      'console_scripts': [
+        'piccolo2-wavelengthCalibration = piccolo2.pcalibrate:main',
+      ],
+      'gui_scripts': [
+        'piccolo2-calibrate-gui = piccolo2.pcalibrateg:main',
+      ],
+
     },
     cmdclass=cmdclass,
     # metadata for upload to PyPI
