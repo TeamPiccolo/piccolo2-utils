@@ -30,6 +30,7 @@ setup(
         "configobj",
         "pandas",
         "scipy",
+	"sortedcontainers",
     ],
     data_files=[
         ('share/piccolo2-util',["data/HgArLines.csv",]),
