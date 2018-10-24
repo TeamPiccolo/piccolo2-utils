@@ -1,3 +1,14 @@
+2018-10-24 Magnus Hagdorn
+ * setup.py: new dependency
+ * piccolo2/utils/calibrateData.py: new object to handle calibration data
+ * piccolo2/utils/matchSpectralLines.py: simplify peak matching
+ * piccolo2/utils/__init__.py: load new module
+ * piccolo2/utils/FindPeaks.py: removed, no longer required
+ * piccolo2/pcalibrate.py: use new calibration object to handle data
+
+2018-10-23 Magnus Hagdorn
+ * piccolo2/pcalibrate.py: distinguish various spectral lines
+
 2018-10-23 Magnus Hagdorn
  * setup.py: require pandas and scipy
  * piccolo2/pcalibrate.py: use pandas to handle data

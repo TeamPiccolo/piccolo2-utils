@@ -17,7 +17,6 @@
 
 __all__  = ['PiccoloSpectralLines']
 
-from FindPeaks import *
 from piccolo2.common import PiccoloSpectrum
 import numpy
 
@@ -33,26 +32,16 @@ class PiccoloSpectralLines(object):
     def lines(self):
         for l in self._spectraLines:
             yield l
-        
-    def match(self,wavelengths,pixels,maxDist=2.,delta=5000,maxval=None):
-        if False:
-            maxpeaks,minpeaks =  peakdet(pixels,delta,maxval=maxval)
-            peak_pixels = maxpeaks[:,0]
-            peak_intensities = maxpeaks[:,1]
-            peak_wavelengths = wavelengths[peak_pixels]
-        else:
-            peak_pixels = peakdet2(pixels,delta,maxval=maxval)
-            peak_intensities = pixels[peak_pixels]
-            peak_wavelengths = wavelengths[peak_pixels]
 
-        # match peaks
+    def match(self,peaks,maxDist=2.):
         matched = []
         lines = list(self._spectraLines)
         lines.sort()
-        for i in range(len(peak_pixels)):
+
+        for p,w in peaks:
             for j in range(len(lines)):
-                if abs(peak_wavelengths[i]-lines[j]) < maxDist:
-                    matched.append((peak_pixels[i],peak_intensities[i],lines[j]))
+                if abs(w-lines[j]) < maxDist:
+                    matched.append((p,lines[j]))
                     del lines[j]
                     break
         return matched

@@ -23,5 +23,5 @@ except DistributionNotFound:
     pass
 
 
-from matchSpectralLines import *
 from calibrateConfig import *
+from calibrateData import *
