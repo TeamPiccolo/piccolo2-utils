@@ -28,6 +28,9 @@ from matchSpectralLines import PiccoloSpectralLines
 from piccolo2.common import PiccoloSpectraList
 from scipy.signal import find_peaks
 
+def gaussian(a,b,c,x):
+    return a*numpy.exp(-(x-b)**2/(2*c**2))
+
 class CalibrateData(object):
     """main data structure holding calibration data"""
 
@@ -46,8 +49,8 @@ class CalibrateData(object):
 
         self._piccoFiles = []
         self._spectra = pandas.DataFrame(columns = ['pixel','intensity','orig_wavelength','fileID','lightSource','new_wavelength'])
-
-        self._peaks = {}
+        
+        self._peaks = pandas.DataFrame(columns = ['pixel','lightSource','wavelength']).set_index('pixel')
 
         self._origCoeffs = None
         self._origPoly = None
@@ -70,6 +73,12 @@ class CalibrateData(object):
     def spectralLines(self):
         """dictionary holiding spectral lines for each light source"""
         return self._spectralLines
+    @property
+    def lightsources(self):
+        """sorted list of light source names (the keys to spectralLines)"""
+        ls = self.spectralLines.keys()
+        ls.sort()
+        return ls
     @property
     def spectra(self):
         """pandas dataframe containing all spectra"""
@@ -124,7 +133,7 @@ class CalibrateData(object):
             return self.maxIntensity
     @property
     def peaks(self):
-        """a dictionary containing a set of peaks for each light source"""
+        """a pandas dataframe containing the peaks and associated wavelength for each light source"""
         return self._peaks
     @property
     def origCoeff(self):
@@ -193,7 +202,7 @@ class CalibrateData(object):
         if name in self.spectralLines:
             raise RuntimeError, 'light source %s is already loaded'%name
         self.spectralLines[name] = PiccoloSpectralLines(spectralLines)
-        self._peaks[name] = SortedSet()
+        
 
     def addSpectrum(self,lightSource,piccoFile):
         """
@@ -241,10 +250,27 @@ class CalibrateData(object):
 
                 # find the peaks
                 peaks,_ = find_peaks(s.pixels,height= self.peakHeight)
-                self.peaks[lightSource].update(peaks)
+                for p in peaks:
+                    self.peaks.loc[p] = {'lightSource':lightSource,'wavelength':-1}
+                self._peaks = self._peaks.sort_index()
 
                 # all good, add processed file to list of files
                 self._piccoFiles.append(piccoFile)
+    
+    def matchWavelength(self):
+        for l in self.spectralLines:
+            peaks = self.peaks[self.peaks==l].index.values
+            p = zip(peaks,self.origWavelength(peaks))
+            for p,w in self.spectralLines[l].match(p):
+                self.peaks.loc[p].wavelength = w
 
+    def fitWavelength(self,order=3,optimseWavelength=None,gaussianWidth=100):
+        p = self.peaks[self.peaks.wavelength>0]
+        if optimseWavelength is not None:
+            weights = 0.5+gaussian(0.5,optimseWavelength,gaussianWidth,p.index.values)
+        else:
+            weights = None
+        self.newCoeff = numpy.polyfit(p.index.values,p.wavelength.values,order,w=weights)
+                
     def updateNewWavelength(self):
         self.spectra.new_wavelength[:] = self.newWavelength(self.spectra.pixel.values)

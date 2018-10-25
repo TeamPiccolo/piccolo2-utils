@@ -75,6 +75,9 @@ def main():
         print 'no data'
         sys.exit(1)
 
+    # match and optimise wavelengths
+    calibrationData.matchWavelength()
+    calibrationData.fitWavelength()
     
     utils.CalibrateApp.main(calibrationData)
 

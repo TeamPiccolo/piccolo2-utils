@@ -5,9 +5,6 @@ from matplotlib import pyplot
 import numpy
 import pandas
 
-def gaussian(a,b,c,x):
-    return a*numpy.exp(-(x-b)**2/(2*c**2))
-
 markers = "ov^<>spP*Dd"
 
 def main():
@@ -63,23 +60,9 @@ def main():
         print 'no data'
         sys.exit(1)
 
-    # fit wavelength coefficients
-    allMatched = []
-    matched = {}
-    for l in calibrationData.spectralLines:
-        p = zip(calibrationData.peaks[l],calibrationData.origWavelength(calibrationData.peaks[l]))
-        m = calibrationData.spectralLines[l].match(p)
-        matched[l] = numpy.array(m,dtype=float)
-        allMatched = allMatched + m
-    allMatched.sort()
-    allMatched = numpy.array(allMatched,dtype=float)
-
-    if args.wavelength is not None:
-        weights = 0.5+gaussian(0.5,args.wavelength,args.gaussian_width,allMatched[:,0])
-    else:
-        weights = None
-
-    calibrationData.newCoeff = numpy.polyfit(allMatched[:,0],allMatched[:,1],3,w=weights)
+    # match and optimise wavelengths
+    calibrationData.matchWavelength()
+    calibrationData.fitWavelength()
 
     print 'original',calibrationData.origCoeff
     print 'new', calibrationData.newCoeff
@@ -98,11 +81,11 @@ def main():
         for l in calibrationData.spectralLines[s].lines:
             for j in range(2):
                 ax[0,j].axvline(l,color=spectralLinesColour[s])
-        w = calibrationData.origWavelength(matched[s][:,0])
-        ax[1,0].plot(w,matched[s][:,1]-w,'o',color=spectralLinesColour[s])
-        w = calibrationData.newWavelength(matched[s][:,0])
-        ax[1,1].plot(w,matched[s][:,1]-w,'o',color=spectralLinesColour[s])
-
+        matched = calibrationData.peaks[(calibrationData.peaks.lightSource==s) & (calibrationData.peaks.wavelength>0)]
+        w = calibrationData.origWavelength(matched.index.values)
+        ax[1,0].plot(w,matched.wavelength.values-w,'o',color=spectralLinesColour[s])
+        w = calibrationData.newWavelength(matched.index.values)
+        ax[1,1].plot(w,matched.wavelength.values-w,'o',color=spectralLinesColour[s])
 
     for i in range(calibrationData.numSpectra):
         c = 'C%d'%(i%10)

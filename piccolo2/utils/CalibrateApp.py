@@ -22,14 +22,27 @@ import calibrate_ui
 
 
 class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, calibrationData, parent=None):
         super(CalibrateApp, self).__init__()
         self.setupUi(self)
 
+        self.calibrationData = calibrationData
 
+        self.calibratePlot.data = calibrationData
+        
+        # the light source selector
+        self.lightSourceSelector.addItems(self.calibrationData.lightsources)
+        self.lightSourceSelector.currentIndexChanged.connect(self.replot)
+
+        # plot current light source
+        self.replot()
+
+    def replot(self):
+        self.calibratePlot.plotData(self.lightSourceSelector.currentText())
+        
 def main(calibrationData):
     app = QtWidgets.QApplication([])
-    form = CalibrateApp()
+    form = CalibrateApp(calibrationData)
     form.show()
     
     app.exec_()
