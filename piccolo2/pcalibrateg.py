@@ -1,11 +1,26 @@
+#!/usr/bin/env python
+
+# Copyright 2014-2016 The Piccolo Team
+#
+# This file is part of piccolo2-utils.
+#
+# piccolo2-utils is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# piccolo2-utils is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with piccolo2-utils.  If not, see <http://www.gnu.org/licenses/>.
+
+import utils.CalibrateApp 
 from piccolo2.utils import CalibrateData, CalibrateConfig
 import argparse
 import sys, os.path
-from matplotlib import pyplot
-import numpy
-import pandas
-
-markers = "ov^<>spP*Dd"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -63,47 +78,8 @@ def main():
     # match and optimise wavelengths
     calibrationData.matchWavelength()
     calibrationData.fitWavelength()
-
-    print 'original',calibrationData.origCoeff
-    print 'new', calibrationData.newCoeff
-
-    # plot data
-    f,ax = pyplot.subplots(2,2, sharex=True)
-    spectralLinesColour = {}
-    spectralLinesMarker = {}
-    i = 0
-    for l in calibrationData.spectralLines:
-        spectralLinesColour[l] = 'C%d'%(i%10)
-        spectralLinesMarker[l] = markers[i%len(markers)]
-        i = i+1
-
-    for s in calibrationData.spectralLines:
-        for l in calibrationData.spectralLines[s].lines:
-            for j in range(2):
-                ax[0,j].axvline(l,color=spectralLinesColour[s])
-        matched = calibrationData.peaks[(calibrationData.peaks.lightSource==s) & (calibrationData.peaks.wavelength>0)]
-        w = calibrationData.origWavelength(matched.index.values)
-        ax[1,0].plot(w,matched.wavelength.values-w,'o',color=spectralLinesColour[s])
-        w = calibrationData.newWavelength(matched.index.values)
-        ax[1,1].plot(w,matched.wavelength.values-w,'o',color=spectralLinesColour[s])
-
-    for i in range(calibrationData.numSpectra):
-        c = 'C%d'%(i%10)
-        s = calibrationData.spectra[calibrationData.spectra.fileID==i]
-        ax[0,0].plot(s.orig_wavelength.values,s.intensity.values,color=c)
-        ax[0,1].plot(s.new_wavelength.values,s.intensity.values,color=c)
-
-    for j in range(2):
-        ax[j,0].set_xlim(s.orig_wavelength.values[[0,-1]])
-        ax[j,1].set_xlim(s.new_wavelength.values[[0,-1]])
-
     
-    pyplot.suptitle('%s %s'%(calibrationData.serialNumber,calibrationData.direction),fontsize=16)
-    ax[0,0].set_title('original')
-    ax[0,1].set_title('new')
-    ax[1,0].set_ylabel('mismatch at peaks')
-    ax[0,0].set_ylabel('counts')
-    ax[1,0].set_xlabel('wavelength')
-    ax[1,1].set_xlabel('wavelength')
-        
-    pyplot.show()
+    utils.CalibrateApp.main(calibrationData)
+
+if __name__ == '__main__':
+    main()

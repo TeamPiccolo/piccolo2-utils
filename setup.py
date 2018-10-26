@@ -16,7 +16,19 @@
 # along with piccolo2-utils.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup, find_packages
+from pyqt_distutils.build_ui import build_ui
+import setuptools.command.build_py
 
+class BuildPyCommand(setuptools.command.build_py.build_py):
+  """Custom build command."""
+
+  def run(self):
+    self.run_command('build_ui')
+    setuptools.command.build_py.build_py.run(self)
+
+cmdclass = {'build_ui': build_ui,
+            'build_py': BuildPyCommand,}
+    
 setup(
     name = "piccolo2-utils",
     namespace_packages = ['piccolo2'],
@@ -36,11 +48,15 @@ setup(
         ('share/piccolo2-util',["data/HgArLines.csv",]),
         ],
     entry_points={
-        'console_scripts': [
-            'piccolo2-wavelengthCalibration = piccolo2.pcalibrate:main',
-        ],
-    },
+      'console_scripts': [
+        'piccolo2-wavelengthCalibration = piccolo2.pcalibrate:main',
+      ],
+      'gui_scripts': [
+        'piccolo2-calibrate-gui = piccolo2.pcalibrateg:main',
+      ],
 
+    },
+    cmdclass=cmdclass,
     # metadata for upload to PyPI
     author = "Magnus Hagdorn, Alasdair MacArthur, Iain Robinson",
     description = "Part of the piccolo2 system. This package provides some utilities",
