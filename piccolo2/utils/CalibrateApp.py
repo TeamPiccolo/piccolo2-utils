@@ -20,6 +20,30 @@ __all__ = ['main']
 from PyQt5 import QtCore, QtGui, QtWidgets
 import calibrate_ui
 
+class SpectralLinesDelegate(QtWidgets.QItemDelegate):
+
+    def __init__(self,parent,data,lightsource):
+        self.pdata = data
+        QtWidgets.QItemDelegate.__init__(self, parent)
+        self.lightsource = lightsource
+
+
+    def createEditor(self, parent, option, index):
+        combo = QtWidgets.QComboBox(parent)
+        li = ['-1']
+        for l in self.pdata.spectralLines[self.lightsource].lines:
+            li.append(str(l))
+        combo.addItems(li)
+        combo.setCurrentText(index.model().data(index))
+        return combo
+        
+    def setModelData(self, editor, model, index):
+        model.setData(index, editor.currentText())
+        
+    @QtCore.pyqtSlot()
+    def currentIndexChanged(self):
+        self.commitData.emit(self.sender())
+
 class Peaks(QtGui.QStandardItemModel):
     def __init__(self,*args,**keywords):
         self.pdata = keywords['data']
@@ -27,13 +51,13 @@ class Peaks(QtGui.QStandardItemModel):
         
         QtGui.QStandardItemModel.__init__(self,*args,**keywords)
 
-
     def selectLightSource(self,lightsource):
         peaks = self.pdata.peaks[self.pdata.peaks.lightSource==lightsource]
         self.clear()
         self.setHorizontalHeaderLabels(['pixel','wavelength','spectral line'])
         self.setColumnCount(3)
         self.setRowCount(len(peaks))
+
         i = 0
         for pixel,row in peaks.iterrows():
             item = QtGui.QStandardItem(str(pixel))
@@ -53,6 +77,10 @@ class Peaks(QtGui.QStandardItemModel):
             else:
                 self.item(r,1).setForeground(QtGui.QBrush(QtGui.QColor('black')))
 
+    def setData(self,index,data):
+        pixel = int(self.item(index.row(),column=0).text())
+        QtGui.QStandardItemModel.setData(self,index,data)
+        self.pdata.peaks.loc[pixel].wavelength = float(data)
 
 class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
     def __init__(self, calibrationData, parent=None):
@@ -72,6 +100,14 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         # the peaks table
         self.tableView.setModel(self.peaks)
 
+        # hook up polyorder
+        self.order = None
+        self.changeOrder()
+        self.polynomialOrder.editingFinished.connect(self.changeOrder)
+
+        # the calculate button
+        self.calculateCoeffs.clicked.connect(self.fitWavelengths)
+        
         # set the light source
         self.lightsourceChanged()
 
@@ -79,6 +115,17 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         ls = self.lightSourceSelector.currentText()
         self.calibratePlot.plotData(ls)
         self.peaks.selectLightSource(ls)
+        self.tableView.setItemDelegateForColumn(2, SpectralLinesDelegate(self,self.calibrationData,ls))
+
+    def changeOrder(self):
+        self.order = self.polynomialOrder.value()
+        
+    def fitWavelengths(self):
+        ls = self.lightSourceSelector.currentText()
+        self.calibrationData.fitWavelength(order=self.order)
+        self.calibratePlot.plotData(ls)
+        print self.calibrationData.newCoeff
+
         
 def main(calibrationData):
     app = QtWidgets.QApplication([])
