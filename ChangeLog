@@ -1,3 +1,6 @@
+2018-10-26 Magnus Hagdorn
+ * add GUI
+
 2018-10-24 Magnus Hagdorn
  * setup.py: new dependency
  * piccolo2/utils/calibrateData.py: new object to handle calibration data
