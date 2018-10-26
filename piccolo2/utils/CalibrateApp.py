@@ -46,6 +46,13 @@ class Peaks(QtGui.QStandardItemModel):
             self.setItem(i,2,item)
             i = i+1
 
+    def highlightWavelength(self,wavelength):
+        for r in range(self.rowCount()):
+            if abs(float(self.item(r,1).text())-wavelength) < 1e-8:
+                self.item(r,1).setForeground(QtGui.QBrush(QtGui.QColor('green')))
+            else:
+                self.item(r,1).setForeground(QtGui.QBrush(QtGui.QColor('black')))
+
 
 class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
     def __init__(self, calibrationData, parent=None):
@@ -55,6 +62,8 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         self.calibrationData = calibrationData
         self.calibratePlot.data = calibrationData
         self.peaks = Peaks(data=self.calibrationData)
+
+        self.calibratePlot.setCallback(self.peaks.highlightWavelength)
         
         # the light source selector
         self.lightSourceSelector.addItems(self.calibrationData.lightsources)

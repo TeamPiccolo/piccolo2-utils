@@ -32,6 +32,9 @@ class CalibratePlot(FigureCanvas):
 
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
+        self.misfitCallback = None
+
+        self.canvas.mpl_connect('pick_event', self.onpick)
 
         self.data = None
         self._theplot = None
@@ -47,6 +50,17 @@ class CalibratePlot(FigureCanvas):
             self._theplot.append(self.figure.add_subplot(2,1,2,sharex=self._theplot[0]))
         return self._theplot
 
+    def setCallback(self,callback):
+        self.misfitCallback = callback
+    
+    def onpick(self,event):
+        this = event.artist
+        idx = event.ind
+        w = this.get_xdata()[idx][0]
+        if self.misfitCallback is not None:
+            self.misfitCallback(w)
+        else:
+            print w
     
     def plotData(self,lightsource):
 
@@ -69,6 +83,6 @@ class CalibratePlot(FigureCanvas):
 
         matched = self.data.peaks[(self.data.peaks.lightSource==lightsource) & (self.data.peaks.wavelength>0)]
         w = self.data.newWavelength(matched.index.values)
-        self.theplot[1].plot(w,matched.wavelength.values-w,'o')
+        self.theplot[1].plot(w,matched.wavelength.values-w,'ob',picker=5)
         
         self.draw()
