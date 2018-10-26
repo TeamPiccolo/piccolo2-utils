@@ -82,6 +82,24 @@ class Peaks(QtGui.QStandardItemModel):
         QtGui.QStandardItemModel.setData(self,index,data)
         self.pdata.peaks.loc[pixel].wavelength = float(data)
 
+class Coeffs(QtGui.QStandardItemModel):
+    def __init__(self,*args,**keywords):
+        self.pdata = keywords['data']
+        del keywords['data']
+        QtGui.QStandardItemModel.__init__(self,*args,**keywords)
+        
+        self.updateData()
+        
+    def updateData(self):
+        self.clear()
+        coeff = self.pdata.newCoeff
+        self.setRowCount(1)
+        self.setColumnCount(len(coeff))
+        for i in range(len(coeff)):
+            item = QtGui.QStandardItem(str(coeff[i]))
+            item.setEditable(False)
+            self.setItem(0,i,item)
+        
 class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
     def __init__(self, calibrationData, parent=None):
         super(CalibrateApp, self).__init__()
@@ -90,7 +108,8 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         self.calibrationData = calibrationData
         self.calibratePlot.data = calibrationData
         self.peaks = Peaks(data=self.calibrationData)
-
+        self.coeff = Coeffs(data=self.calibrationData)
+        
         self.calibratePlot.setCallback(self.peaks.highlightWavelength)
         
         # the light source selector
@@ -99,6 +118,9 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
 
         # the peaks table
         self.tableView.setModel(self.peaks)
+
+        # the coeff view
+        self.coeffView.setModel(self.coeff)
 
         # hook up polyorder
         self.order = None
@@ -110,6 +132,9 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         
         # set the light source
         self.lightsourceChanged()
+
+        # fit the data
+        self.fitWavelengths()
 
     def lightsourceChanged(self):
         ls = self.lightSourceSelector.currentText()
@@ -124,7 +149,16 @@ class CalibrateApp(QtWidgets.QMainWindow, calibrate_ui.Ui_MainWindow):
         ls = self.lightSourceSelector.currentText()
         self.calibrationData.fitWavelength(order=self.order)
         self.calibratePlot.plotData(ls)
-        print self.calibrationData.newCoeff
+        self.coeff.updateData()
+        self.coeffView.resizeColumnsToContents()
+        height = (self.coeffView.horizontalScrollBar().height() +
+                  self.coeffView.horizontalHeader().height() +
+                  self.coeffView.verticalHeader().sectionSize(0))
+        width = 0
+        for i in range(self.coeffView.horizontalHeader().count()):
+            width+=self.coeffView.columnWidth(i)
+        self.coeffView.setMinimumHeight(height)
+        self.coeffView.setMinimumWidth(width)
 
         
 def main(calibrationData):

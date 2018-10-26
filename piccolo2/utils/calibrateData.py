@@ -169,7 +169,7 @@ class CalibrateData(object):
     @newCoeff.setter
     def newCoeff(self,coeffs):
         c = numpy.array(coeffs,dtype=float)
-        if self._newCoeffs is None or numpy.all(numpy.abs(c-self._newCoeffs)>1e-14):
+        if self._newCoeffs is None or len(c)!=len(self._newCoeffs) or numpy.all(numpy.abs(c-self._newCoeffs)>1e-14):
             self._newCoeffs = c
             self._newPoly  = None
             self.updateNewWavelength()
